@@ -6,7 +6,8 @@
       "Bash(npm install:*)",
       "Bash(python3:*)",
       "Bash(npx tsc:*)",
-      "Bash(node --input-type=module --check)"
+      "Bash(node --input-type=module --check)",
+      "Bash(git -C \"/Users/poorvanshisharma/Desktop/Github Projects/Inventra\" status)"
     ]
   }
 }
