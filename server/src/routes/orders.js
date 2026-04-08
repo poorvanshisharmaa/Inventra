@@ -27,13 +27,37 @@ router.get('/:id', protect, async (req, res) => {
   }
 });
 
-// POST /api/orders  (admin only)
-router.post('/', protect, adminOnly, async (req, res) => {
+// POST /api/orders — admins create orders directly; distributors raise order requests (status=pending)
+router.post('/', protect, async (req, res) => {
   try {
-    const order = new Order(req.body);
+    const body = { ...req.body };
+
+    // Auto-generate orderId if not provided
+    if (!body.orderId) {
+      const count = await Order.countDocuments();
+      body.orderId = `ORD-${String(count + 1).padStart(4, '0')}`;
+    }
+    // Default date to today
+    if (!body.date) {
+      body.date = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+    // Distributors always start at pending
+    if (req.user.role !== 'admin') {
+      body.status = 'pending';
+      body.progress = 10;
+    }
+
+    const order = new Order(body);
     await order.save();
-    await Activity.create({ action: 'Order Placed', detail: `${order.customer} placed order ${order.orderId}`, icon: 'order' });
-    await Notification.create({ type: 'info', message: `New order received from ${order.customer}` });
+
+    const isDistributor = req.user.role !== 'admin';
+    const detail = isDistributor
+      ? `${req.user.name} (distributor) raised order request ${order.orderId} for ${order.customer}`
+      : `${order.customer} placed order ${order.orderId}`;
+
+    await Activity.create({ action: 'Order Placed', detail, icon: 'order' });
+    await Notification.create({ type: 'info', message: `New order request ${order.orderId} from ${order.customer}` });
+
     res.status(201).json(order);
   } catch (err) {
     res.status(400).json({ message: err.message });

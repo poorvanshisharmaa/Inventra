@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import {
@@ -595,6 +595,14 @@ function AIStatusBar({ onRefresh }: { onRefresh: () => void }) {
     refetchInterval: 30_000,
   });
 
+  // Log AI service status to console only — not shown in UI
+  useEffect(() => {
+    if (!data) return;
+    const status = data.aiService?.online ? 'Online' : 'Offline (JS fallback active)';
+    const cached = data.cacheEntries ?? 0;
+    console.info(`[Inventra AI] Python AI Service: ${status} · ${cached} cached result(s)`);
+  }, [data]);
+
   const qc = useQueryClient();
   const clearMut = useMutation({
     mutationFn: () => aiApi.clearCache(),
@@ -605,32 +613,12 @@ function AIStatusBar({ onRefresh }: { onRefresh: () => void }) {
   });
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-muted/30 border border-border/40 px-4 py-2">
-      <div className="flex items-center gap-3">
-        <div className="flex items-center gap-1.5">
-          {data?.aiService.online
-            ? <Zap className="h-3.5 w-3.5 text-green-400" />
-            : <XCircle className="h-3.5 w-3.5 text-muted-foreground" />}
-          <span className="text-xs text-muted-foreground">
-            Python AI Service:
-            <span className={`ml-1 font-medium ${data?.aiService.online ? 'text-green-400' : 'text-muted-foreground'}`}>
-              {data?.aiService.online ? 'Online' : 'Offline (JS fallback active)'}
-            </span>
-          </span>
-        </div>
-        {data && (
-          <span className="text-xs text-muted-foreground">
-            · {data.cacheEntries} cached result{data.cacheEntries !== 1 ? 's' : ''}
-          </span>
-        )}
-      </div>
-      <div className="flex gap-2">
-        <Button size="sm" variant="ghost" className="h-7 text-xs"
-          onClick={() => clearMut.mutate()} disabled={clearMut.isPending}>
-          {clearMut.isPending ? <RefreshCw className="h-3 w-3 animate-spin mr-1" /> : <RefreshCw className="h-3 w-3 mr-1" />}
-          Refresh
-        </Button>
-      </div>
+    <div className="flex justify-end rounded-lg bg-muted/30 border border-border/40 px-3 py-1.5">
+      <Button size="sm" variant="ghost" className="h-7 text-xs"
+        onClick={() => clearMut.mutate()} disabled={clearMut.isPending}>
+        {clearMut.isPending ? <RefreshCw className="h-3 w-3 animate-spin mr-1" /> : <RefreshCw className="h-3 w-3 mr-1" />}
+        Refresh AI
+      </Button>
     </div>
   );
 }
