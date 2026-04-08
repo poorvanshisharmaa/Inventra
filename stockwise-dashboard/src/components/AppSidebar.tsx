@@ -23,7 +23,7 @@ const allNavItems = [
   { title: 'Orders',        url: '/orders',        icon: ShoppingCart,    roles: ['admin', 'distributor'] },
   { title: 'Analytics',     url: '/analytics',     icon: BarChart3,       roles: ['admin'] },
   { title: 'AI Intelligence', url: '/ai',          icon: Zap,             roles: ['admin'] },
-  { title: 'AI Intelligence', url: '/distributor-tools', icon: Zap,        roles: ['distributor'] },
+  { title: 'AI Intelligence', url: '/ai-intelligence',   icon: Zap,        roles: ['distributor'] },
   { title: 'Notifications', url: '/notifications', icon: Bell,            roles: ['admin', 'distributor'] },
 ];
 

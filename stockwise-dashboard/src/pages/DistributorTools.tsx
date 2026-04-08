@@ -81,6 +81,7 @@ export default function DistributorTools() {
       >
         {activeTab === 'order-extractor' && (
           <OrderExtractor
+            defaultOpen
             onOrderCreated={() => queryClient.invalidateQueries({ queryKey: ['orders'] })}
           />
         )}

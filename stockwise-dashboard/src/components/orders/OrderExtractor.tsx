@@ -46,13 +46,16 @@ function lineFromExtracted(item: ExtractedOrderItem): LineItem {
   };
 }
 
+const SAMPLE_MESSAGE = `Hi, this is Sarah from Metro Supplies.\n\nWe urgently need the following by Friday:\n- 20 units of Laptop Pro\n- 8 Wireless Keyboards\n- 15 USB-C Hubs\n\nPlease confirm availability. This is a rush order.\n\nThanks, Sarah`;
+
 // ─── Component ────────────────────────────────────────────────────────────────
 interface OrderExtractorProps {
   onOrderCreated?: () => void;
+  defaultOpen?: boolean;
 }
 
-export function OrderExtractor({ onOrderCreated }: OrderExtractorProps) {
-  const [open,     setOpen]     = useState(false);
+export function OrderExtractor({ onOrderCreated, defaultOpen = false }: OrderExtractorProps) {
+  const [open,     setOpen]     = useState(defaultOpen);
   const [rawText,  setRawText]  = useState('');
   const [draft,    setDraft]    = useState<ExtractedOrder | null>(null);
 
@@ -175,9 +178,18 @@ export function OrderExtractor({ onOrderCreated }: OrderExtractorProps) {
                   {!draft && (
                     <div className="space-y-3">
                       <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                          Paste email / WhatsApp / message
-                        </label>
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                            Paste email / WhatsApp / message
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => setRawText(SAMPLE_MESSAGE)}
+                            className="text-xs text-primary hover:text-primary/80 transition-colors"
+                          >
+                            Try a sample
+                          </button>
+                        </div>
                         <textarea
                           value={rawText}
                           onChange={e => setRawText(e.target.value)}
@@ -402,6 +414,13 @@ export function OrderExtractor({ onOrderCreated }: OrderExtractorProps) {
                           )}
                         </Button>
                       </div>
+
+                      {/* Extraction meta */}
+                      {draft.meta && (
+                        <p className="text-[10px] text-muted-foreground/50 text-right">
+                          {draft.meta.model} · {draft.meta.tokensUsed != null ? `${draft.meta.tokensUsed} tokens` : 'tokens n/a'}
+                        </p>
+                      )}
                     </motion.div>
                   )}
                 </>
