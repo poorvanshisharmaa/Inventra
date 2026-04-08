@@ -40,15 +40,47 @@ router.post('/', protect, adminOnly, async (req, res) => {
   }
 });
 
+// Progress values tied to each status
+const STATUS_PROGRESS = {
+  pending:    10,
+  processing: 60,
+  completed:  100,
+  cancelled:  0,
+};
+
 // PATCH /api/orders/:id  (admin only)
 router.patch('/:id', protect, adminOnly, async (req, res) => {
   try {
-    const order = await Order.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
-    if (!order) return res.status(404).json({ message: 'Order not found' });
+    const existing = await Order.findById(req.params.id);
+    if (!existing) return res.status(404).json({ message: 'Order not found' });
 
-    if (req.body.status === 'completed') {
+    // Prevent moving backwards or changing terminal states
+    const terminal = ['completed', 'cancelled'];
+    if (terminal.includes(existing.status)) {
+      return res.status(400).json({ message: `Order is already ${existing.status} and cannot be changed.` });
+    }
+
+    const update = { ...req.body };
+
+    // Auto-set progress when status changes
+    if (update.status && STATUS_PROGRESS[update.status] !== undefined) {
+      update.progress = STATUS_PROGRESS[update.status];
+    }
+
+    const order = await Order.findByIdAndUpdate(req.params.id, update, { new: true, runValidators: true });
+
+    // Activity + notification side-effects
+    if (update.status === 'processing') {
+      await Activity.create({ action: 'Order Processing', detail: `${order.orderId} for ${order.customer} is now being processed`, icon: 'order' });
+      await Notification.create({ type: 'info', message: `Order ${order.orderId} is now processing` });
+    }
+    if (update.status === 'completed') {
       await Activity.create({ action: 'Order Completed', detail: `${order.orderId} delivered to ${order.customer}`, icon: 'order' });
       await Notification.create({ type: 'success', message: `Order ${order.orderId} completed successfully` });
+    }
+    if (update.status === 'cancelled') {
+      await Activity.create({ action: 'Order Cancelled', detail: `${order.orderId} for ${order.customer} was cancelled`, icon: 'alert' });
+      await Notification.create({ type: 'error', message: `Order ${order.orderId} has been cancelled` });
     }
 
     res.json(order);
