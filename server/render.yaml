@@ -1,18 +1,19 @@
 services:
   - type: web
-    name: inventra-api
+    name: inventra-server
     env: node
     region: oregon
     plan: free
-    rootDir: .
     buildCommand: npm install
-    startCommand: npm start
+    startCommand: node src/index.js
     envVars:
       - key: NODE_ENV
         value: production
       - key: MONGODB_URI
-        sync: false          # set manually in Render dashboard
+        sync: false
       - key: JWT_SECRET
-        sync: false          # set manually in Render dashboard
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
       - key: ALLOWED_ORIGINS
-        sync: false          # set to your Vercel URL after deploy
+        sync: false
