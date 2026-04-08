@@ -1,30 +1,48 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Camera, TrendingUp } from 'lucide-react';
+import { Camera, TrendingUp, Sparkles } from 'lucide-react';
 import { PhotoInventoryCount } from '@/components/ai/PhotoInventoryCount';
 import { DemandSignalDetector } from '@/components/ai/DemandSignalDetector';
+import { OrderExtractor } from '@/components/orders/OrderExtractor';
+import { useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 
 const TABS = [
-  { id: 'photo', label: 'Photo Stock Count', icon: Camera, description: 'Upload a shelf photo — AI counts visible units and flags discrepancies' },
-  { id: 'demand', label: 'Demand Signals', icon: TrendingUp, description: 'Live signals: weather, events, seasons that affect your products' },
+  {
+    id: 'order-extractor',
+    label: 'AI Order Extractor',
+    icon: Sparkles,
+    description: 'Paste an email or WhatsApp message — AI extracts a structured order draft instantly',
+  },
+  {
+    id: 'photo',
+    label: 'Photo Stock Count',
+    icon: Camera,
+    description: 'Upload a shelf photo — AI counts visible units and flags discrepancies',
+  },
+  {
+    id: 'demand',
+    label: 'Demand Signals',
+    icon: TrendingUp,
+    description: 'Live signals: weather, events, seasons that affect your products',
+  },
 ] as const;
 
 type Tab = typeof TABS[number]['id'];
 
-
 export default function DistributorTools() {
-  const [activeTab, setActiveTab] = useState<Tab>('photo');
+  const [activeTab, setActiveTab] = useState<Tab>('order-extractor');
+  const queryClient = useQueryClient();
 
   return (
     <div className="space-y-6 max-w-5xl">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">My Tools</h1>
-        <p className="text-muted-foreground text-sm mt-1">AI-powered tools available to distributors</p>
+        <h1 className="text-2xl font-bold tracking-tight">AI Intelligence</h1>
+        <p className="text-muted-foreground text-sm mt-1">AI-powered tools available to you</p>
       </div>
 
       {/* Tab selector */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {TABS.map(tab => (
           <motion.button
             key={tab.id}
@@ -61,6 +79,11 @@ export default function DistributorTools() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2 }}
       >
+        {activeTab === 'order-extractor' && (
+          <OrderExtractor
+            onOrderCreated={() => queryClient.invalidateQueries({ queryKey: ['orders'] })}
+          />
+        )}
         {activeTab === 'photo'  && <PhotoInventoryCount />}
         {activeTab === 'demand' && <DemandSignalDetector />}
       </motion.div>
