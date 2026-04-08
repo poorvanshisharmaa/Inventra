@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, ArrowUpDown, Package, Edit2, Check, X, Plus, SendHorizonal, ClipboardList, ChevronDown } from 'lucide-react';
+import { Search, ArrowUpDown, Package, Edit2, Check, X, Plus, SendHorizonal, ClipboardList, RefreshCw } from 'lucide-react';
+import { QueryError } from '@/components/ErrorBoundary';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -13,6 +14,19 @@ import { cn } from '@/lib/utils';
 
 type SortKey = 'name' | 'quantity' | 'price';
 type SortDir = 'asc' | 'desc';
+
+/** Auto-generate a SKU from product name: e.g. "Wireless Keyboard" → "WK-384" */
+function generateSKU(name: string): string {
+  const initials = name
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 3)
+    .map(w => w[0].toUpperCase())
+    .join('');
+  const num = String(Math.floor(Math.random() * 900) + 100);
+  return `${initials || 'PR'}-${num}`;
+}
 
 const REQUEST_STATUS_STYLE: Record<RestockRequest['status'], string> = {
   pending:   'bg-warning/10 text-warning',
@@ -35,6 +49,7 @@ export default function Inventory() {
   const [editQty, setEditQty] = useState(0);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newItem, setNewItem] = useState({ name: '', sku: '', category: '', quantity: 0, reorderLevel: 10, price: 0 });
+  const [skuManual, setSkuManual] = useState(false);
 
   // Restock request state (distributor)
   const [requestingId, setRequestingId] = useState<string | null>(null);
@@ -47,9 +62,10 @@ export default function Inventory() {
   const [adminNote, setAdminNote] = useState<Record<string, string>>({});
   const [approvedQty, setApprovedQty] = useState<Record<string, number>>({});
 
-  const { data: items = [], isLoading } = useQuery({
+  const { data: items = [], isLoading, isError: invError, refetch: refetchInv } = useQuery({
     queryKey: ['inventory'],
     queryFn: () => inventoryApi.getAll().then(r => r.data),
+    staleTime: 60_000,
   });
 
   const { data: restockRequests = [] } = useQuery({
@@ -172,13 +188,40 @@ export default function Inventory() {
           >
             <h3 className="text-sm font-semibold mb-4">New Product</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {(['name', 'sku', 'category'] as const).map(field => (
-                <div key={field} className="space-y-1">
-                  <label className="text-xs font-medium capitalize">{field}</label>
-                  <Input placeholder={field} value={newItem[field]}
-                    onChange={e => setNewItem(p => ({ ...p, [field]: e.target.value }))} className="h-8 text-sm" />
+              {/* Name — triggers SKU auto-generation */}
+              <div className="space-y-1">
+                <label className="text-xs font-medium">Name</label>
+                <Input placeholder="Product name" value={newItem.name} className="h-8 text-sm"
+                  onChange={e => {
+                    const name = e.target.value;
+                    setNewItem(p => ({ ...p, name, sku: skuManual ? p.sku : generateSKU(name) }));
+                  }} />
+              </div>
+              {/* SKU — auto-generated, refresh or edit manually */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-medium">SKU <span className="text-muted-foreground font-normal">(auto)</span></label>
+                  {!skuManual && <span className="text-[10px] text-primary cursor-pointer hover:underline" onClick={() => setSkuManual(true)}>edit</span>}
                 </div>
-              ))}
+                <div className="relative">
+                  <Input placeholder="Auto-generated" value={newItem.sku} readOnly={!skuManual}
+                    onChange={e => setNewItem(p => ({ ...p, sku: e.target.value }))}
+                    className={cn('h-8 text-sm font-mono pr-7', !skuManual && 'bg-muted/40 cursor-default')} />
+                  {!skuManual && (
+                    <button type="button" title="Regenerate SKU"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      onClick={() => setNewItem(p => ({ ...p, sku: generateSKU(p.name) }))}>
+                      <RefreshCw className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              </div>
+              {/* Category */}
+              <div className="space-y-1">
+                <label className="text-xs font-medium">Category</label>
+                <Input placeholder="e.g. Electronics" value={newItem.category} className="h-8 text-sm"
+                  onChange={e => setNewItem(p => ({ ...p, category: e.target.value }))} />
+              </div>
               {(['quantity', 'reorderLevel', 'price'] as const).map(field => (
                 <div key={field} className="space-y-1">
                   <label className="text-xs font-medium capitalize">{field === 'reorderLevel' ? 'Reorder Level' : field}</label>
@@ -348,7 +391,9 @@ export default function Inventory() {
       {/* Table */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}
         className="rounded-xl bg-card border border-border/50 overflow-hidden card-shadow">
-        {isLoading ? (
+        {invError ? (
+          <QueryError message="Could not load inventory data." onRetry={refetchInv} />
+        ) : isLoading ? (
           <div className="flex items-center justify-center py-16 text-muted-foreground">
             <div className="h-6 w-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin mr-3" />
             Loading inventory…

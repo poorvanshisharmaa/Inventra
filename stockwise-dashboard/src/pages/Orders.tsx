@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ordersApi, Order } from '@/services/api';
 import { OrderExtractor } from '@/components/orders/OrderExtractor';
+import { QueryError } from '@/components/ErrorBoundary';
 import { useToast } from '@/components/ui/use-toast';
 
 // ── Status pipeline ────────────────────────────────────────────────
@@ -82,9 +83,10 @@ export default function Orders() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const queryClient = useQueryClient();
 
-  const { data: orders = [], isLoading } = useQuery({
+  const { data: orders = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['orders'],
     queryFn: () => ordersApi.getAll().then(r => r.data),
+    staleTime: 60_000,
   });
 
   const updateStatus = useMutation({
@@ -124,6 +126,27 @@ export default function Orders() {
         />
       )}
 
+      {/* Distributor: order summary stats */}
+      {!isAdmin && orders.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {(['pending', 'processing', 'completed', 'cancelled'] as Order['status'][]).map(s => {
+            const count = orders.filter(o => o.status === s).length;
+            const meta = STATUS_META[s];
+            const Icon = meta.icon;
+            return (
+              <div key={s} className={`rounded-xl border border-border/50 p-4 card-shadow ${meta.bg}`}>
+                <div className="flex items-center gap-2 mb-1">
+                  <Icon className={`h-4 w-4 ${meta.color}`} />
+                  <span className={`text-xs font-medium capitalize ${meta.color}`}>{meta.label}</span>
+                </div>
+                <p className="text-2xl font-bold">{count}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">order{count !== 1 ? 's' : ''}</p>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {/* Status filter tabs */}
       <div className="flex gap-2 flex-wrap">
         {statuses.map(s => (
@@ -142,7 +165,9 @@ export default function Orders() {
         ))}
       </div>
 
-      {isLoading ? (
+      {isError ? (
+        <QueryError message="Could not load orders." onRetry={refetch} />
+      ) : isLoading ? (
         <div className="flex items-center justify-center py-16 text-muted-foreground">
           <div className="h-6 w-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin mr-3" />
           Loading orders…

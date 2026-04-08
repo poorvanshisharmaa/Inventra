@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppLayout } from "@/components/AppLayout";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Dashboard from "./pages/Dashboard";
 import Inventory from "./pages/Inventory";
 import Orders from "./pages/Orders";
@@ -14,9 +15,29 @@ import AIIntelligence from "./pages/AIIntelligence";
 import DistributorTools from "./pages/DistributorTools";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
+import { toast } from "sonner";
 
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
+  defaultOptions: {
+    queries: {
+      retry: (failureCount, error: unknown) => {
+        // Don't retry on 401/403 — auth errors need a re-login
+        const status = (error as { response?: { status?: number } })?.response?.status;
+        if (status === 401 || status === 403) return false;
+        return failureCount < 2;
+      },
+      staleTime: 60_000,          // 1 min default
+      gcTime: 5 * 60_000,         // keep cache 5 min
+      refetchOnWindowFocus: false, // don't spam on tab switch
+    },
+    mutations: {
+      onError: (error: unknown) => {
+        const msg = (error as { response?: { data?: { message?: string } } })
+          ?.response?.data?.message ?? 'Something went wrong';
+        toast.error(msg);
+      },
+    },
+  },
 });
 
 function ProtectedRoute({ children, adminOnly = false }: { children: React.ReactNode; adminOnly?: boolean }) {
@@ -64,17 +85,19 @@ function AppRoutes() {
 }
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <AppRoutes />
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner richColors closeButton />
+        <BrowserRouter>
+          <AuthProvider>
+            <AppRoutes />
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;

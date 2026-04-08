@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Camera, TrendingUp } from 'lucide-react';
 import { PhotoInventoryCount } from '@/components/ai/PhotoInventoryCount';
+import { DemandSignalDetector } from '@/components/ai/DemandSignalDetector';
 import { cn } from '@/lib/utils';
 
 const TABS = [
@@ -11,17 +12,6 @@ const TABS = [
 
 type Tab = typeof TABS[number]['id'];
 
-// Lazy-loaded demand signal component to avoid importing the full AI page
-function DemandSignalWidget() {
-  return (
-    <div className="rounded-xl bg-card border border-border/50 p-5 card-shadow">
-      <p className="text-sm text-muted-foreground text-center py-8">
-        Demand signal data is available via the AI Intelligence page (Admin).
-        Ask your admin to share relevant signals with you.
-      </p>
-    </div>
-  );
-}
 
 export default function DistributorTools() {
   const [activeTab, setActiveTab] = useState<Tab>('photo');
@@ -72,7 +62,7 @@ export default function DistributorTools() {
         transition={{ duration: 0.2 }}
       >
         {activeTab === 'photo'  && <PhotoInventoryCount />}
-        {activeTab === 'demand' && <DemandSignalWidget />}
+        {activeTab === 'demand' && <DemandSignalDetector />}
       </motion.div>
     </div>
   );
