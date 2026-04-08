@@ -6,7 +6,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { ShoppingBag, PackageCheck, User } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
-import { analyticsApi, ordersApi, Activity } from '@/services/api';
+import { analyticsApi, ordersApi, inventoryApi, Activity } from '@/services/api';
 
 const activityIcons = {
   order: ShoppingBag,
@@ -57,8 +57,16 @@ export default function Dashboard() {
     queryFn: () => ordersApi.getAll().then(r => r.data),
   });
 
-  // For non-admin: derive KPIs from orders list
+  // Distributors fetch inventory to compute their own KPIs
+  const { data: inventoryItems = [] } = useQuery({
+    queryKey: ['inventory'],
+    queryFn: () => inventoryApi.getAll().then(r => r.data),
+    enabled: !isAdmin,
+  });
+
   const activeOrders = orders.filter(o => ['pending', 'processing'].includes(o.status)).length;
+  const distTotalInventory = inventoryItems.reduce((sum, i) => sum + i.quantity, 0);
+  const distLowStock = inventoryItems.filter(i => i.status === 'low').length;
 
   return (
     <div className="space-y-6 max-w-7xl">
@@ -73,10 +81,10 @@ export default function Dashboard() {
       <div className={`grid grid-cols-1 sm:grid-cols-2 ${isAdmin ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-4`}>
         <KPICard
           title="Total Inventory"
-          value={isAdmin ? (summary?.totalInventory ?? 0) : '—'}
+          value={isAdmin ? (summary?.totalInventory ?? 0) : distTotalInventory}
           icon={Package}
           gradient="purple"
-          change="+12.5% from last month"
+          change={isAdmin ? '+12.5% from last month' : `${inventoryItems.length} product lines`}
           changeType="positive"
           delay={0}
         />
@@ -85,17 +93,17 @@ export default function Dashboard() {
           value={isAdmin ? (summary?.activeOrders ?? activeOrders) : activeOrders}
           icon={ShoppingCart}
           gradient="info"
-          change="+3 new today"
+          change="pending + processing"
           changeType="positive"
           delay={1}
         />
         <KPICard
           title="Low Stock Alerts"
-          value={isAdmin ? (summary?.lowStockAlerts ?? 0) : '—'}
+          value={isAdmin ? (summary?.lowStockAlerts ?? 0) : distLowStock}
           icon={AlertTriangle}
           gradient="warning"
-          change="Check inventory"
-          changeType="negative"
+          change="items below reorder level"
+          changeType={distLowStock > 0 || (summary?.lowStockAlerts ?? 0) > 0 ? 'negative' : 'neutral'}
           delay={2}
         />
         {isAdmin && (

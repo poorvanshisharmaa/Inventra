@@ -11,6 +11,7 @@ import Orders from "./pages/Orders";
 import Analytics from "./pages/Analytics";
 import Notifications from "./pages/Notifications";
 import AIIntelligence from "./pages/AIIntelligence";
+import DistributorTools from "./pages/DistributorTools";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 
@@ -53,6 +54,7 @@ function AppRoutes() {
         <Route path="/orders" element={<Orders />} />
         <Route path="/analytics" element={<ProtectedRoute adminOnly><Analytics /></ProtectedRoute>} />
         <Route path="/ai" element={<ProtectedRoute adminOnly><AIIntelligence /></ProtectedRoute>} />
+        <Route path="/distributor-tools" element={<DistributorTools />} />
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/login" element={<Navigate to="/" replace />} />
         <Route path="*" element={<NotFound />} />

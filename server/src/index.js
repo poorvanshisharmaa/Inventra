@@ -12,6 +12,7 @@ import photoCountRoutes from './routes/photoCount.js';
 import voiceRoutes        from './routes/voice.js';
 import orderExtractRoutes  from './routes/orderExtract.js';
 import demandSignalRoutes  from './routes/demandSignals.js';
+import restockRoutes       from './routes/restockRequests.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -66,7 +67,8 @@ app.use('/api/ai',          aiRoutes);
 app.use('/api/photo-count', photoCountRoutes);
 app.use('/api/voice',          voiceRoutes);
 app.use('/api/orders',         orderExtractRoutes);      // adds /api/orders/extract
-app.use('/api/demand-signals', demandSignalRoutes);
+app.use('/api/demand-signals',   demandSignalRoutes);
+app.use('/api/restock-requests', restockRoutes);
 
 // Health check
 app.get('/api/health', (_, res) => res.json({ status: 'ok' }));

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 
 interface KPICardProps {
   title: string;
-  value: number;
+  value: number | string;
   prefix?: string;
   suffix?: string;
   change?: string;
@@ -32,7 +32,8 @@ function useAnimatedCounter(target: number, duration = 1000) {
 }
 
 export function KPICard({ title, value, prefix = '', suffix = '', change, changeType = 'neutral', icon: Icon, gradient, delay = 0 }: KPICardProps) {
-  const animatedValue = useAnimatedCounter(value);
+  const isNumber = typeof value === 'number' && !isNaN(value);
+  const animatedValue = useAnimatedCounter(isNumber ? (value as number) : 0);
 
   const gradientClass = {
     purple: 'gradient-purple',
@@ -47,6 +48,10 @@ export function KPICard({ title, value, prefix = '', suffix = '', change, change
     neutral: 'text-muted-foreground',
   }[changeType];
 
+  const displayValue = isNumber
+    ? `${prefix}${animatedValue.toLocaleString()}${suffix}`
+    : String(value);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -57,9 +62,7 @@ export function KPICard({ title, value, prefix = '', suffix = '', change, change
       <div className="flex items-start justify-between">
         <div className="space-y-2">
           <p className="text-sm text-muted-foreground font-medium">{title}</p>
-          <p className="text-2xl font-bold tracking-tight">
-            {prefix}{animatedValue.toLocaleString()}{suffix}
-          </p>
+          <p className="text-2xl font-bold tracking-tight">{displayValue}</p>
           {change && (
             <p className={`text-xs font-medium ${changeColor}`}>{change}</p>
           )}

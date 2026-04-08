@@ -112,6 +112,34 @@ export interface Activity {
   createdAt: string;
 }
 
+// ── Restock Requests ──────────────────────────────────────────────
+export interface RestockRequest {
+  _id: string;
+  productId: string;
+  productName: string;
+  sku: string;
+  category: string;
+  distributorEmail: string;
+  distributorName: string;
+  requestedQty: number;
+  currentStock: number;
+  notes: string;
+  fulfillmentType: 'central' | 'transfer';
+  sourceDistributor: string;
+  status: 'pending' | 'approved' | 'rejected' | 'fulfilled';
+  adminNote: string;
+  approvedQty: number | null;
+  createdAt: string;
+}
+
+export const restockApi = {
+  getAll: () => api.get<RestockRequest[]>('/restock-requests'),
+  create: (data: { productId: string; requestedQty: number; notes?: string; fulfillmentType?: 'central' | 'transfer' }) =>
+    api.post<RestockRequest>('/restock-requests', data),
+  update: (id: string, data: Partial<RestockRequest>) =>
+    api.patch<RestockRequest>(`/restock-requests/${id}`, data),
+};
+
 export const analyticsApi = {
   summary: () => api.get<AnalyticsSummary>('/analytics/summary'),
   inventoryTrends: () => api.get<TrendPoint[]>('/analytics/inventory-trends'),
